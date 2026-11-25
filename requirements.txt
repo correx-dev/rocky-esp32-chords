@@ -1,0 +1,16 @@
+# Servidor del juego (Python/)
+numpy
+scipy
+librosa
+soundfile
+pyserial
+sounddevice
+mido
+PyGuitarPro
+requests
+beautifulsoup4
+ai-edge-litert        # inferencia TFLite liviana en tiempo real en el PC
+# Entrenamiento y evidencia (IA/)
+tensorflow
+scikit-learn
+matplotlib

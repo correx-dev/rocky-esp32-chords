@@ -1,0 +1,17 @@
+{
+ "dataset": [],
+ "modelos": [],
+ "mediciones": {
+  "recursos_esp32": [],
+  "pc_vivo": [],
+  "validacion_placa": [],
+  "hardware": []
+ },
+ "git": null,
+ "codigo": {
+  "Python": 3597,
+  "Firmware/rocky_ia": 825,
+  "IA": 384,
+  "tests": 228
+ }
+}

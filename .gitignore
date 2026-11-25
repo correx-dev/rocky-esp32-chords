@@ -1,0 +1,17 @@
+# Python / compilados
+__pycache__/
+*.pyc
+# Modelos pesados (el .tflite int8 y modelo.h sí se versionan)
+IA/modelos/*/modelo_float.keras
+# Dataset de audio: los WAV pesan; versiona metadata.csv y publica los WAV como Release o Git LFS.
+# Solo se pueden subir grabaciones propias o con consentimiento escrito de quien tocó.
+IA/dataset/**/*.wav
+# NO subir canciones ni archivos de Rocksmith (derechos de autor) ni el Toolkit
+Canciones/
+*.psarc
+*.ogg
+*.mp3
+Toolkit/
+# Credenciales
+.env
+secrets.h

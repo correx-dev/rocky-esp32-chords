@@ -1,0 +1,56 @@
+ROCKY - CÓDIGO PYTHON (GUÍA DE ESTUDIO)
+=======================================
+
+El servidor de Python es el "oído" del juego: recibe el audio de la guitarra, detecta notas,
+prepara las canciones y le avisa todo a Unity por mensajes UDP.
+
+ORDEN SUGERIDO PARA ESTUDIAR
+----------------------------
+1. arranque.py       (24 líneas)   Lo ejecuta Unity al abrir el juego. Instala las librerías que
+                                   falten y arranca rocky.py.
+2. rocky.py          (1216 líneas) EL PRINCIPAL. Partes clave:
+                                     - Anillo: buffer circular con los últimos 2 s de audio.
+                                     - hilo_serial: lee los paquetes de la ESP32 por USB.
+                                     - hilo_interfaz: usa una interfaz de audio USB como entrada.
+                                     - yin(): algoritmo que detecta la nota (frecuencia).
+                                     - bucle_envio: ~60 veces por segundo detecta y manda a Unity
+                                       "R1;nota;volumen;claridad;ataque;notas".
+                                     - analizar_cancion: convierte un MP3 en niveles (chart).
+                                     - manejar_control: órdenes que llegan de Unity (retorno,
+                                       efectos, secciones, grabar dataset).
+3. partituras.py     (620 líneas)  Lee Guitar Pro, MIDI, MusicXML y Rocksmith y los convierte
+                                   en charts (notas, técnicas, secciones, afinación, tonos).
+4. efectos.py        (320 líneas)  Pedalera por código: puerta de ruido, wah, distorsión,
+                                   gabinete, chorus, delay y reverb; retorno a los audífonos.
+5. info_web.py       (252 líneas)  WEB SCRAPING: busca la canción en Wikipedia con requests +
+                                   BeautifulSoup y extrae artista, álbum, año y género.
+6. ia_features.py    (95 líneas)   Características de audio para la IA: 1 s -> 28 x 48 bandas
+                                   de semitono. Las mismas cuentas se hacen en C en la ESP32.
+7. ia_dataset.py     (92 líneas)   Graba las tomas del dataset propio (modo "Entrena a la IA").
+8. ia_borde.py       (76 líneas)   Recibe lo que calcula la IA DENTRO de la ESP32 (acorde y
+                                   recursos: Flash, RAM, latencia) y lo guarda en CSV.
+9. IA/entrenar.py    (381 líneas)  Entrena la red neuronal, la cuantiza a int8 (TensorFlow Lite)
+                                   y genera el modelo para la ESP32.
+
+LIBRERÍAS QUE USA
+-----------------
+numpy, scipy, librosa, soundfile, pyserial, sounddevice, mido, PyGuitarPro, requests,
+beautifulsoup4 (y para entrenar: tensorflow, scikit-learn, matplotlib).
+
+CÓMO SE CONECTA CON LO DEMÁS
+----------------------------
+ESP32 / interfaz USB --audio--> rocky.py --UDP 5005--> Unity (el juego)
+Unity --UDP 5006 (órdenes)--> rocky.py
+
+
+NOVEDADES DE ESTA VERSIÓN (v2, tiempo real)
+-------------------------------------------
+Python/estructuras.py       Buffer circular, ventana de votación, tabla hash y montículo propios (con pruebas).
+Python/ia_vivo.py           IA de acordes en tiempo real en el PC (mismo modelo int8 que la ESP32) + CSV de latencias.
+Python/validar_en_placa.py  Compara la ESP32 contra el PC toma por toma (exactitud REAL en la placa).
+Python/diagnostico_hw.py    Mide la cadena de hardware con la guitarra conectada (paquetes/s, ruido, SNR, notas).
+Python/ia_evidencia.py      Junta toda la evidencia real en docs/EVIDENCIA.md (lo que falta lo marca como FALTA).
+Firmware/rocky_ia/          Firmware de la ESP32-S3: adquisición + clasificador TFLite Micro + telemetría (ver su README).
+tests/                      Pruebas: estructuras (Python y C++), características C vs Python, tiempo real simulado.
+docs/                       GUIA_PASO_A_PASO.md y DESCRIPCION_TECNICA.md (base del informe).
+instalar_herramientas.ps1   Instala librerías de Python, Arduino CLI, placa ESP32 y librería TFLite Micro.
