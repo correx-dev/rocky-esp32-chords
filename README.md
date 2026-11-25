@@ -20,4 +20,4 @@ Own data structures (no libraries): circular buffer, voting window, hash table, 
 Status of every result (what is measured and what is missing): `docs/EVIDENCIA.md`.
 
 Data and consent: only recordings of the authors or with written consent of the player are published.
-Songs and Rocksmith files are not included.
+Test songs (audio, charts and Rocksmith files) are included in Canciones/ for testing only. They belong to their rights holders and are not licensed for redistribution.

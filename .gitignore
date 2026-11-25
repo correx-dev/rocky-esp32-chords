@@ -6,11 +6,10 @@ IA/modelos/*/modelo_float.keras
 # Dataset de audio: los WAV pesan; versiona metadata.csv y publica los WAV como Release o Git LFS.
 # Solo se pueden subir grabaciones propias o con consentimiento escrito de quien tocó.
 IA/dataset/**/*.wav
-# NO subir canciones ni archivos de Rocksmith (derechos de autor) ni el Toolkit
-Canciones/
-*.psarc
-*.ogg
-*.mp3
+# Las canciones de prueba SÍ se versionan (decisión del equipo). Se excluyen temporales, zips duplicados y el Toolkit.
+Canciones/_tmp/
+Canciones/*.zip
+Canciones/*.listo
 Toolkit/
 # Credenciales
 .env
