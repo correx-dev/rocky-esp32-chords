@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rocky · Cableado con HS075 (TL072) y PCM1808 GLA</title>
+<style>
+  :root {
+    --bg:#fff; --fg:#1d2330; --muted:#5b6475; --line:#d7dbe3; --card:#f6f7fa;
+    --warn-bg:#fff4d6; --warn-bd:#e0a800; --bad-bg:#fde4e4; --bad-bd:#c62828; --ok-bg:#e3f5e8; --ok-bd:#2e7d32;
+    --board:#efe9d6; --board-bd:#b9ad84;
+    --c12:#b3002d; --c5v:#d62828; --cgnd:#222; --cbclk:#e0b000; --clrck:#2a9d4a; --cdata:#1d6fd6; --csig:#f08a00;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#14171f; --fg:#e8ebf2; --muted:#9aa3b5; --line:#2c3342; --card:#1c212c;
+      --warn-bg:#3a3012; --bad-bg:#3d1a1a; --ok-bg:#16301f; --board:#2b2a24; --board-bd:#6a6445; --cgnd:#cfd4df; --c12:#ff5c7f; }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  main{max-width:1080px;margin:0 auto;padding:24px 18px 60px}
+  h1{font-size:28px;margin:0 0 4px} h2{font-size:21px;margin:38px 0 10px;padding-top:14px;border-top:1px solid var(--line)} h3{font-size:16px;margin:16px 0 6px}
+  p{margin:6px 0 10px} .sub{color:var(--muted)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin:12px 0}
+  .warn,.bad,.ok{border-left:5px solid;border-radius:6px;padding:10px 14px;margin:12px 0}
+  .warn{background:var(--warn-bg);border-color:var(--warn-bd)} .bad{background:var(--bad-bg);border-color:var(--bad-bd)} .ok{background:var(--ok-bg);border-color:var(--ok-bd)}
+  table{border-collapse:collapse;width:100%;font-size:14.5px;margin:8px 0 14px}
+  th,td{border:1px solid var(--line);padding:7px 9px;text-align:left;vertical-align:top} th{background:var(--card)}
+  .chip{display:inline-block;min-width:70px;text-align:center;padding:2px 8px;border-radius:12px;font-weight:600;font-size:13px;color:#fff}
+  .r12{background:var(--c12)} .rojo{background:var(--c5v)} .negro{background:#222} .amarillo{background:var(--cbclk);color:#1a1a1a}
+  .verde{background:var(--clrck)} .azul{background:var(--cdata)} .naranja{background:var(--csig);color:#1a1a1a} .gris{background:#6b7280}
+  svg{width:100%;height:auto;display:block;background:var(--card);border:1px solid var(--line);border-radius:10px}
+  svg text{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;fill:var(--fg)} svg .m{fill:var(--muted)}
+  ul.check{list-style:none;padding-left:0} ul.check li{margin:6px 0} ul.check input,td input{margin-right:8px;transform:scale(1.2)}
+  ol.steps{padding-left:22px} ol.steps li{margin:8px 0}
+  code{background:var(--card);border:1px solid var(--line);border-radius:4px;padding:0 5px;font-size:14px}
+  @media print{body{font-size:12.5px} svg,table,.card{break-inside:avoid}}
+</style>
+</head>
+<body>
+<main>
+
+<h1>Rocky · Cableado con tus módulos reales</h1>
+<p class="sub">Actualizado el 25 de noviembre de 2026: los 5 V del PCM1808 ahora salen de un Arduino Uno (sección 2 y sección 6).</p>
+<p class="sub">Preamplificador <strong>HS075 (TL072, 12 V)</strong> y ADC <strong>PCM1808 GLA «ANA TO I2S 96K/24BIT»</strong>, según las fotos del vendedor. Lo marcado con ⚠ no se ve en las fotos y hay que confirmarlo en tu placa con la serigrafía y el multímetro.</p>
+
+<div class="warn">
+  <strong>Cambio importante en la alimentación del ADC.</strong> En esta ESP32-S3 (clon de la DevKitC-1 con dos USB-C) el pin <code>5V</code> <strong>no entrega los 5 V del USB</strong> mientras los pads <code>IN-OUT</code> de la placa estén abiertos, según reportes de foros (no lo medimos, no había multímetro). Como no se pudo soldar ese puente, el PCM1808 se alimenta con los <strong>5 V de un Arduino Uno</strong> y se une la masa con la de la ESP32. El detalle está en la sección 6.
+</div>
+
+<div class="bad">
+  <strong>Esta versión reemplaza la anterior.</strong> En la anterior inventé una «entrada DC» en el preamp y dije que no se conectara +VCC. En tu HS075 <strong>no hay jack de alimentación</strong>: el conector blanco de 3 pines lleva los <strong>12 V en VCC</strong> y además saca la señal por SOUT. Si cableaste con esa guía, revisa ese punto antes de conectar cualquier placa.
+</div>
+
+<h2>1. Lo que se ve en cada módulo</h2>
+
+<svg viewBox="0 0 1100 430" role="img" aria-label="Los dos módulos con sus conectores">
+  <!-- HS075 -->
+  <text x="270" y="30" text-anchor="middle" font-size="16" font-weight="700">Preamp HS075 (TL072)</text>
+  <rect x="120" y="50" width="300" height="300" rx="10" fill="var(--board)" stroke="var(--board-bd)" stroke-width="2"/>
+  <rect x="150" y="62" width="200" height="40" rx="6" fill="var(--card)" stroke="currentColor" stroke-opacity=".7" stroke-width="2"/>
+  <text x="250" y="87" text-anchor="middle" font-size="13">Jack mono 6,35 mm (entrada guitarra)</text>
+  <circle cx="190" cy="260" r="40" fill="var(--card)" stroke="currentColor" stroke-opacity=".7" stroke-width="2"/>
+  <path d="M190 260 L206 238" stroke="currentColor" stroke-width="4"/>
+  <text x="190" y="324" text-anchor="middle" font-size="13">Perilla NIVEL</text>
+  <rect x="270" y="190" width="60" height="40" rx="4" fill="none" stroke="currentColor" stroke-opacity=".5"/>
+  <text x="300" y="214" text-anchor="middle" font-size="12" class="m">TL072</text>
+  <rect x="388" y="140" width="32" height="130" rx="4" fill="var(--card)" stroke="currentColor" stroke-opacity=".7" stroke-width="2"/>
+  <circle cx="404" cy="170" r="6" fill="var(--c12)"/><text x="380" y="174" text-anchor="end" font-size="13" font-weight="700">VCC</text>
+  <circle cx="404" cy="205" r="6" fill="var(--cgnd)"/><text x="380" y="209" text-anchor="end" font-size="13" font-weight="700">GND ⚠</text>
+  <circle cx="404" cy="240" r="6" fill="var(--csig)"/><text x="380" y="244" text-anchor="end" font-size="13" font-weight="700">SOUT</text>
+  <text x="404" y="130" text-anchor="middle" font-size="12" class="m">conector blanco 3 pines</text>
+  <text x="270" y="380" text-anchor="middle" font-size="12" class="m">En la foto solo se lee «VCC» y «SO…»; el orden VCC / GND / SOUT</text>
+  <text x="270" y="397" text-anchor="middle" font-size="12" class="m">viene de tu informe anterior. Confírmalo en la serigrafía.</text>
+
+  <!-- PCM1808 -->
+  <text x="800" y="30" text-anchor="middle" font-size="16" font-weight="700">PCM1808 GLA (96K/24BIT)</text>
+  <rect x="580" y="50" width="440" height="300" rx="10" fill="var(--board)" stroke="var(--board-bd)" stroke-width="2"/>
+  <rect x="590" y="130" width="70" height="90" rx="6" fill="var(--card)" stroke="currentColor" stroke-opacity=".7" stroke-width="2"/>
+  <text x="625" y="170" text-anchor="middle" font-size="12">Jack 3,5 mm</text>
+  <text x="625" y="186" text-anchor="middle" font-size="12" class="m">no se usa</text>
+  <!-- L_IN header -->
+  <rect x="680" y="70" width="34" height="100" rx="4" fill="var(--card)" stroke="currentColor" stroke-opacity=".7" stroke-width="2"/>
+  <circle cx="697" cy="90" r="6" fill="none" stroke="#888" stroke-width="2"/><text x="722" y="94" font-size="13">R_IN</text>
+  <circle cx="697" cy="120" r="6" fill="var(--cgnd)"/><text x="722" y="124" font-size="13" font-weight="700">GND</text>
+  <circle cx="697" cy="150" r="6" fill="var(--csig)"/><text x="722" y="154" font-size="13" font-weight="700">L_IN</text>
+  <!-- chip/crystal -->
+  <rect x="780" y="140" width="60" height="50" rx="4" fill="none" stroke="currentColor" stroke-opacity=".4"/>
+  <text x="810" y="170" text-anchor="middle" font-size="12" class="m">cristal</text>
+  <rect x="780" y="80" width="60" height="40" rx="4" fill="none" stroke="currentColor" stroke-opacity=".4"/>
+  <text x="810" y="104" text-anchor="middle" font-size="12" class="m">PCM1808</text>
+  <!-- I2S OUT -->
+  <text x="975" y="64" text-anchor="middle" font-size="12" class="m">I2S OUT</text>
+  <rect x="990" y="72" width="30" height="150" rx="4" fill="var(--card)" stroke="currentColor" stroke-opacity=".7" stroke-width="2"/>
+  <circle cx="1005" cy="90" r="6" fill="var(--cdata)"/><text x="982" y="94" text-anchor="end" font-size="13" font-weight="700">DATA</text>
+  <circle cx="1005" cy="120" r="6" fill="var(--cbclk)"/><text x="982" y="124" text-anchor="end" font-size="13" font-weight="700">BCLK</text>
+  <circle cx="1005" cy="150" r="6" fill="var(--clrck)"/><text x="982" y="154" text-anchor="end" font-size="13" font-weight="700">LRCK</text>
+  <circle cx="1005" cy="180" r="6" fill="none" stroke="#888" stroke-width="2"/><text x="982" y="184" text-anchor="end" font-size="13">MCLK (libre)</text>
+  <circle cx="1005" cy="210" r="6" fill="var(--cgnd)"/><text x="982" y="214" text-anchor="end" font-size="13">GND</text>
+  <!-- POWER -->
+  <text x="975" y="256" text-anchor="middle" font-size="12" class="m">POWER</text>
+  <rect x="990" y="264" width="30" height="64" rx="4" fill="var(--card)" stroke="currentColor" stroke-opacity=".7" stroke-width="2"/>
+  <circle cx="1005" cy="282" r="6" fill="var(--c5v)"/><text x="982" y="286" text-anchor="end" font-size="13" font-weight="700">5 V ⚠</text>
+  <circle cx="1005" cy="312" r="6" fill="var(--cgnd)"/><text x="982" y="316" text-anchor="end" font-size="13" font-weight="700">GND ⚠</text>
+  <text x="800" y="380" text-anchor="middle" font-size="12" class="m">Orden de los pines I2S OUT y L_IN/GND leído de la foto. En POWER no se ven los nombres:</text>
+  <text x="800" y="397" text-anchor="middle" font-size="12" class="m">mira la serigrafía de la placa y mide antes de dar corriente.</text>
+</svg>
+
+<h2>2. Diagrama de conexiones</h2>
+<p>Cada línea de color es un cable. Las flechas negras, rojas y granate indican a dónde va el cable de alimentación: <strong>riel GND</strong> y <strong>riel 5 V</strong> de la protoboard, y el <strong>adaptador de 12 V</strong>. Los 12 V no tocan nunca la protoboard. El riel de 5 V sale del <strong>Arduino Uno</strong>, no de la ESP32.</p>
+
+<svg viewBox="0 0 1100 615" role="img" aria-label="Cableado entre guitarra, HS075, PCM1808, ESP32-S3, Arduino como fuente de 5 V y PC">
+  <!-- Guitar -->
+  <ellipse cx="60" cy="215" rx="42" ry="34" fill="none" stroke="currentColor" stroke-opacity=".55" stroke-width="1.6"/>
+  <text x="60" y="219" text-anchor="middle" font-size="12">Guitarra</text>
+  <path d="M102 215 H150" stroke="#666" stroke-width="5" fill="none"/>
+  <text x="126" y="205" text-anchor="middle" font-size="11" class="m">cable</text>
+
+  <!-- Preamp -->
+  <text x="290" y="100" text-anchor="middle" font-size="14" font-weight="700">HS075 preamp</text>
+  <rect x="150" y="110" width="250" height="230" rx="10" fill="none" stroke="currentColor" stroke-opacity=".7" stroke-width="2"/>
+  <text x="165" y="222" font-size="12" class="m">jack 6,35 mm</text>
+  <text x="165" y="300" font-size="12" class="m">NIVEL: al mínimo</text>
+  <circle cx="400" cy="170" r="6" fill="var(--c12)"/><text x="388" y="174" text-anchor="end" font-size="12" font-weight="700">VCC</text>
+  <circle cx="400" cy="215" r="6" fill="var(--cgnd)"/><text x="388" y="219" text-anchor="end" font-size="12" font-weight="700">GND</text>
+  <circle cx="400" cy="260" r="6" fill="var(--csig)"/><text x="388" y="264" text-anchor="end" font-size="12" font-weight="700">SOUT</text>
+
+  <!-- 12V adapter stub -->
+  <path d="M406 170 H470" stroke="var(--c12)" stroke-width="5" fill="none"/>
+  <rect x="470" y="150" width="150" height="40" rx="6" fill="none" stroke="var(--c12)" stroke-width="2"/>
+  <text x="545" y="167" text-anchor="middle" font-size="12" font-weight="700" style="fill:var(--c12)">Adaptador +12 V</text>
+  <text x="545" y="182" text-anchor="middle" font-size="11" class="m">solo a VCC del HS075</text>
+
+  <!-- GND stub preamp -->
+  <path d="M406 215 H470" stroke="var(--cgnd)" stroke-width="5" fill="none"/>
+  <text x="476" y="219" font-size="12" font-weight="700">→ riel GND</text>
+  <text x="476" y="236" font-size="11" class="m">(y el − del adaptador)</text>
+
+  <!-- PCM -->
+  <text x="720" y="100" text-anchor="middle" font-size="14" font-weight="700">PCM1808 GLA</text>
+  <rect x="640" y="110" width="160" height="230" rx="10" fill="none" stroke="currentColor" stroke-opacity=".7" stroke-width="2"/>
+  <circle cx="640" cy="170" r="6" fill="none" stroke="#888" stroke-width="2"/><text x="652" y="174" font-size="12">R_IN (libre)</text>
+  <circle cx="640" cy="215" r="6" fill="var(--cgnd)"/><text x="652" y="219" font-size="12" font-weight="700">GND</text>
+  <circle cx="640" cy="260" r="6" fill="var(--csig)"/><text x="652" y="264" font-size="12" font-weight="700">L_IN</text>
+  <!-- SOUT -> L_IN -->
+  <path d="M406 260 H634" stroke="var(--csig)" stroke-width="5" fill="none"/>
+  <text x="520" y="278" text-anchor="middle" font-size="12">señal SOUT → L_IN</text>
+  <!-- PCM GND stub -->
+  <path d="M634 215 H600" stroke="var(--cgnd)" stroke-width="5" fill="none" stroke-dasharray="0"/>
+  
+  <!-- PCM I2S pins right -->
+  <circle cx="800" cy="150" r="6" fill="var(--cdata)"/><text x="788" y="154" text-anchor="end" font-size="12" font-weight="700">DATA</text>
+  <circle cx="800" cy="185" r="6" fill="var(--cbclk)"/><text x="788" y="189" text-anchor="end" font-size="12" font-weight="700">BCLK</text>
+  <circle cx="800" cy="220" r="6" fill="var(--clrck)"/><text x="788" y="224" text-anchor="end" font-size="12" font-weight="700">LRCK</text>
+  <circle cx="800" cy="255" r="6" fill="none" stroke="#888" stroke-width="2"/><text x="788" y="259" text-anchor="end" font-size="12">MCLK (sin cable)</text>
+  <!-- PCM power pins bottom -->
+  <circle cx="690" cy="340" r="6" fill="var(--c5v)"/><text x="690" y="362" text-anchor="middle" font-size="12" font-weight="700">5 V ⚠</text>
+  <circle cx="750" cy="340" r="6" fill="var(--cgnd)"/><text x="750" y="362" text-anchor="middle" font-size="12" font-weight="700">GND ⚠</text>
+  <path d="M690 346 V400" stroke="var(--c5v)" stroke-width="5" fill="none"/>
+  <path d="M750 346 V450" stroke="var(--cgnd)" stroke-width="5" fill="none"/>
+
+  <!-- ESP -->
+  <text x="990" y="100" text-anchor="middle" font-size="14" font-weight="700">ESP32-S3 (la nueva)</text>
+  <rect x="910" y="110" width="160" height="230" rx="10" fill="none" stroke="currentColor" stroke-opacity=".7" stroke-width="2"/>
+  <circle cx="910" cy="150" r="6" fill="var(--cdata)"/><text x="922" y="154" font-size="12" font-weight="700">GPIO 6</text>
+  <circle cx="910" cy="185" r="6" fill="var(--cbclk)"/><text x="922" y="189" font-size="12" font-weight="700">GPIO 4</text>
+  <circle cx="910" cy="220" r="6" fill="var(--clrck)"/><text x="922" y="224" font-size="12" font-weight="700">GPIO 5</text>
+  <circle cx="910" cy="300" r="6" fill="none" stroke="#888" stroke-width="2"/><text x="922" y="304" font-size="12">5 V (sin usar)</text>
+  <circle cx="910" cy="325" r="6" fill="var(--cgnd)"/><text x="922" y="329" font-size="12" font-weight="700">GND</text>
+  <path d="M806 150 H904" stroke="var(--cdata)" stroke-width="5" fill="none"/>
+  <path d="M806 185 H904" stroke="var(--cbclk)" stroke-width="5" fill="none"/>
+  <path d="M806 220 H904" stroke="var(--clrck)" stroke-width="5" fill="none"/>
+  <path d="M904 325 H850 V450" stroke="var(--cgnd)" stroke-width="5" fill="none"/>
+  <rect x="965" y="340" width="50" height="14" rx="3" fill="var(--card)" stroke="currentColor" stroke-width="1.5"/>
+  <path d="M990 354 V520" stroke="#6b7280" stroke-width="5" fill="none"/>
+  <text x="998" y="440" font-size="12" class="m">USB al PC</text>
+  <rect x="925" y="520" width="130" height="34" rx="6" fill="none" stroke="currentColor" stroke-opacity=".7" stroke-width="2"/>
+  <text x="990" y="542" text-anchor="middle" font-size="13" font-weight="700">PC · Rocky</text>
+
+  <!-- Arduino Uno como fuente de 5 V -->
+  <text x="410" y="378" text-anchor="middle" font-size="14" font-weight="700">Arduino Uno (solo da 5 V)</text>
+  <rect x="300" y="385" width="220" height="95" rx="10" fill="none" stroke="currentColor" stroke-opacity=".7" stroke-width="2"/>
+  <text x="312" y="430" font-size="12" class="m">sin programa: solo alimentación</text>
+  <circle cx="520" cy="404" r="6" fill="var(--c5v)"/><text x="508" y="408" text-anchor="end" font-size="12" font-weight="700">5V</text>
+  <circle cx="520" cy="454" r="6" fill="var(--cgnd)"/><text x="508" y="458" text-anchor="end" font-size="12" font-weight="700">GND</text>
+  <path d="M526 404 H640" stroke="var(--c5v)" stroke-width="5" fill="none"/>
+  <path d="M526 454 H580" stroke="var(--cgnd)" stroke-width="5" fill="none"/>
+  <text x="410" y="498" text-anchor="middle" font-size="11" class="m">USB al PC (o a un cargador)</text>
+
+  <!-- rails -->
+  <rect x="640" y="400" width="240" height="8" fill="var(--c5v)"/>
+  <text x="888" y="408" font-size="12" font-weight="700" style="fill:var(--c5v)">RIEL + (5 V)</text>
+  <rect x="580" y="450" width="300" height="8" fill="var(--cgnd)"/>
+  <text x="580" y="476" font-size="12" font-weight="700">RIEL − (GND común)</text>
+  <path d="M596 215 V454" stroke="var(--cgnd)" stroke-width="5" fill="none"/>
+  <path d="M476 232 H560" stroke="none"/>
+  <text x="40" y="580" font-size="12" class="m">Los cruces de cable sin punto no se conectan. El riel + (5 V) viene del pin 5V del Arduino. La masa del Arduino, la del PCM1808 y la de la ESP32 van al mismo riel −.</text>
+  <text x="40" y="600" font-size="12" class="m">El ESP32 (3,3 V en los GPIO) recibe BCLK, LRCK y DATA directo del PCM1808: confirma con el multímetro que su salida I2S es de 3,3 V ⚠.</text>
+</svg>
+
+<h2>3. Material</h2>
+<ul class="check">
+  <li><label><input type="checkbox"> Preamp HS075 (TL072) con su jack de 6,35 mm y perilla</label></li>
+  <li><label><input type="checkbox"> PCM1808 GLA</label></li>
+  <li><label><input type="checkbox"> Placa de 32 bits con I2S (ESP32-S3 N16R8 u otra) y cable USB de datos</label></li>
+  <li><label><input type="checkbox"> <strong>Arduino Uno</strong> (o Nano) con su cable USB, solo como fuente de 5 V. Alternativas sin Arduino: tres pilas AA o AAA alcalinas nuevas en serie (unos 4,5–4,8 V) o un cable USB viejo cortado (rojo = 5 V, negro = GND)</label></li>
+  <li><label><input type="checkbox"> Adaptador de 12 V (entre 9 y 15 V) con jack hembra a bornera o cable abierto, para sacar +12 V y GND ⚠</label></li>
+  <li><label><input type="checkbox"> Conector o cable para el conector blanco del HS075 (parece JST de 2,0 o 2,54 mm; los dupont suelen no sujetarse bien) ⚠</label></li>
+  <li><label><input type="checkbox"> Protoboard y dupont: 3 de señal M-M cortos, 5 hacia los rieles, 1 de SOUT a L_IN</label></li>
+  <li><label><input type="checkbox"> Multímetro (si no hay, la prueba de reloj de la sección 6 sirve para saber si el ADC está vivo)</label></li>
+  <li><label><input type="checkbox"> Guitarra y cable con plug de 6,35 mm</label></li>
+</ul>
+
+<h2>4. Tabla de cables</h2>
+<table>
+  <tr><th>✔</th><th>#</th><th>Desde</th><th>Hasta</th><th>Color</th><th>Nota</th></tr>
+  <tr><td><input type="checkbox"></td><td>1</td><td>Adaptador <strong>+12 V</strong></td><td>HS075 · <strong>VCC</strong></td><td><span class="chip r12">granate</span></td><td>El único cable de 12 V. Mide primero la polaridad del adaptador. ⚠</td></tr>
+  <tr><td><input type="checkbox"></td><td>2</td><td>Adaptador <strong>−</strong></td><td>Riel GND</td><td><span class="chip negro">negro</span></td><td>Une la tierra del adaptador con la del resto.</td></tr>
+  <tr><td><input type="checkbox"></td><td>3</td><td>HS075 · <strong>GND</strong></td><td>Riel GND</td><td><span class="chip negro">negro</span></td><td>Tierra de la señal. ⚠ Confirma cuál pin es GND.</td></tr>
+  <tr><td><input type="checkbox"></td><td>4</td><td>HS075 · <strong>SOUT</strong></td><td>PCM1808 · <strong>L_IN</strong></td><td><span class="chip naranja">naranja</span></td><td>Señal amplificada. Hazlo al final, tras las medidas de la sección 6.</td></tr>
+  <tr><td><input type="checkbox"></td><td>5</td><td>PCM1808 · <strong>GND</strong> (junto a L_IN)</td><td>Riel GND</td><td><span class="chip negro">negro</span></td><td>Tierra de entrada del ADC.</td></tr>
+  <tr><td><input type="checkbox"></td><td>6</td><td>Placa · <strong>GND</strong></td><td>Riel GND</td><td><span class="chip negro">negro</span></td><td>Masa común con el Arduino y el ADC: sin esto el ADC y la ESP no se entienden.</td></tr>
+  <tr><td><input type="checkbox"></td><td>7</td><td>Arduino Uno · <strong>5V</strong></td><td>Riel +</td><td><span class="chip rojo">rojo</span></td><td>Sustituye al pin 5V de la ESP32, que en este clon no entrega 5 V sin el puente IN-OUT. No conectes el 5V del Arduino a ningún pin de la ESP32.</td></tr>
+  <tr><td><input type="checkbox"></td><td>7b</td><td>Arduino Uno · <strong>GND</strong></td><td>Riel GND</td><td><span class="chip negro">negro</span></td><td>Masa común: va al mismo riel que el GND de la ESP32 y el del ADC.</td></tr>
+  <tr><td><input type="checkbox"></td><td>8</td><td>Riel +</td><td>PCM1808 · POWER <strong>5 V</strong></td><td><span class="chip rojo">rojo</span></td><td>⚠ Confirma en la serigrafía cuál pin es 5 V. Nunca 12 V aquí.</td></tr>
+  <tr><td><input type="checkbox"></td><td>9</td><td>Riel GND</td><td>PCM1808 · POWER <strong>GND</strong></td><td><span class="chip negro">negro</span></td><td>⚠ Confirma el pin.</td></tr>
+  <tr><td><input type="checkbox"></td><td>10</td><td>PCM1808 · <strong>BCLK</strong></td><td>ESP32 · <strong>GPIO 4</strong></td><td><span class="chip amarillo">amarillo</span></td><td>Cable corto.</td></tr>
+  <tr><td><input type="checkbox"></td><td>11</td><td>PCM1808 · <strong>LRCK</strong></td><td>ESP32 · <strong>GPIO 5</strong></td><td><span class="chip verde">verde</span></td><td>Cable corto.</td></tr>
+  <tr><td><input type="checkbox"></td><td>12</td><td>PCM1808 · <strong>DATA</strong></td><td>ESP32 · <strong>GPIO 6</strong></td><td><span class="chip azul">azul</span></td><td>Cable corto.</td></tr>
+  <tr><td><input type="checkbox"></td><td>13</td><td>Placa · USB nativo</td><td>PC</td><td><span class="chip gris">USB</span></td><td>Audio, acordes y carga del firmware. Con los USB-C abajo y la placa de frente, el nativo es el de la <strong>izquierda</strong> (COM6 en este equipo); el de la derecha es el puente serie (COM5).</td></tr>
+  <tr><td><input type="checkbox"></td><td>13b</td><td>Arduino Uno · USB</td><td>PC o cargador</td><td><span class="chip gris">USB</span></td><td>Solo alimenta; no necesita programa.</td></tr>
+  <tr><td><input type="checkbox"></td><td>14</td><td>Guitarra</td><td>Jack 6,35 mm del HS075</td><td><span class="chip gris">cable guitarra</span></td><td>Enchufa la guitarra directo a la placa, sin más cables.</td></tr>
+</table>
+
+<div class="warn">
+  <strong>No se conecta:</strong>
+  <ul>
+    <li><strong>MCLK</strong> del PCM1808: déjalo libre, el módulo trae su cristal.</li>
+    <li><strong>R_IN</strong>: el firmware lee solo el canal izquierdo.</li>
+    <li>El <strong>jack de 3,5 mm</strong> del PCM1808: no lo uses mientras la señal entre por L_IN.</li>
+    <li>Los <strong>12 V</strong> jamás a la protoboard, al PCM1808 ni a la placa.</li>
+  </ul>
+</div>
+<p>Los puentes de configuración del PCM1808, según la serigrafía de tu módulo (confírmalo con la placa en la mano):</p>
+<table>
+  <tr><th>Opción</th><th>Puentes</th><th>Resultado</th></tr>
+  <tr><td><code>M/S OPTION</code> (OP2 y OP3)</td><td>OP2 abierto, OP3 abierto</td><td>Maestro a 96 kHz (<code>M-96K</code>)</td></tr>
+  <tr><td></td><td>OP2 cerrado, OP3 abierto</td><td>Maestro a 48 kHz (<code>M-48K</code>)</td></tr>
+  <tr><td></td><td>OP2 y OP3 cerrados</td><td>Esclavo (<code>SLAVE</code>): <strong>no sirve</strong>, la ESP32 también es esclava y nadie genera el reloj</td></tr>
+  <tr><td><code>FORMAT OPTION</code> (OP1)</td><td>OP1 abierto</td><td>I2S de 24 bits (el que usa el firmware)</td></tr>
+  <tr><td></td><td>OP1 cerrado</td><td>Justificado a la izquierda (<code>LJ-24</code>): <strong>no sirve</strong></td></tr>
+</table>
+<p>En las fotos no se ve soldadura en esos pads, así que el módulo probablemente está en <code>M-96K</code> (96 kHz). Con 96 kHz hay que cambiar en el firmware <code>FS_ENTRADA</code> a 96000 y <code>DECIMACION</code> a 6 y recompilar; para quedar en 48 kHz habría que cerrar OP2. Hasta que se pruebe, no está comprobado cuál es la frecuencia real.</p>
+
+<h2>5. Otra placa distinta de la ESP32-S3</h2>
+<p>La tabla de arriba usa los pines del firmware que ya compila (<code>GPIO 4, 5, 6</code>). Si cambias de placa, <strong>BCLK, LRCK y DATA</strong> van a los pines I2S de esa placa y el firmware hay que adaptarlo. Todas las placas de 32 bits con I2S sirven, pero un <strong>Arduino Uno no</strong> sirve como placa del proyecto: no tiene I2S (como fuente de 5 V, sección 6b, sí sirve). Los GPIO de estas placas aguantan <strong>3,3 V</strong>, nunca 5 V.</p>
+
+<h2>6. Primera conexión, en este orden</h2>
+<div class="bad"><strong>Antes de enchufar una placa nueva, averigua por qué se quemó la anterior.</strong> Con todo desconectado, mide continuidad entre el riel + y el riel −: no debe haber pitido. Revisa que ningún cable de 12 V haya tocado el riel de 5 V ni un GPIO, y que el PCM1808 y el HS075 no estén calientes ni huelan a quemado.</div>
+<ol class="steps">
+  <li><label><input type="checkbox"> <strong>Solo el Arduino y la ESP32 por USB.</strong> Sin adaptador, preamp ni guitarra. Con multímetro: entre el riel + y el riel − debe haber ~5 V. Sin multímetro: salta al paso 2 y confirma con la prueba de reloj.</label></li>
+  <li><label><input type="checkbox"> Conecta los cables 8 y 9 y mide en el PCM1808 la tensión entre sus pines de POWER: ~5 V. Sin multímetro, haz la prueba de reloj de la sección 6b.</label></li>
+  <li><label><input type="checkbox"> <strong>Mide el adaptador</strong> con el multímetro en DC: 12 V y cuál cable es el positivo. Con la perilla NIVEL al mínimo, conecta cables 1 y 3 al HS075. <strong>SOUT sin cable</strong> todavía.</label></li>
+  <li><label><input type="checkbox"> Mide la <strong>continua en SOUT contra GND</strong> sin guitarra. Cerca de 0 V es lo esperado, porque junto al conector se ve un condensador electrolítico. Si marca varios voltios, <strong>no lo conectes</strong>: hace falta un condensador de acople en serie ⚠.</label></li>
+  <li><label><input type="checkbox"> Mide la salida I2S del PCM1808 contra GND: debe ser ~3,3 V (no 5 V) antes de unirla a los GPIO ⚠.</label></li>
+  <li><label><input type="checkbox"> Apaga el HS075 y conecta <strong>SOUT → L_IN</strong> (cable 4). Vuelve a encenderlo.</label></li>
+  <li><label><input type="checkbox"> Enchufa la guitarra y sube NIVEL poco a poco rasgueando fuerte. Con osciloscopio, no pases de ~2,5 V pico a pico en L_IN (confirma en la hoja de datos del PCM1808, SLES177B).</label></li>
+</ol>
+
+<h2>6b. Alimentar el ADC sin soldar (con el Arduino) y comprobar el reloj</h2>
+<p><strong>Por qué.</strong> El PCM1808 es el que genera BCLK y LRCK. Si no recibe 5 V, no hay reloj, el firmware se queda esperando en la lectura I2S y el diagnóstico muestra <strong>0 paquetes por segundo</strong>. En esta placa el pin <code>5V</code> no tenía 5 V, y soldar el puente <code>IN-OUT</code> no fue posible.</p>
+<ol class="steps">
+  <li><label><input type="checkbox"> Desconecta todos los USB (ESP32 y Arduino).</label></li>
+  <li><label><input type="checkbox"> Quita del pin 5V/5Vin de la ESP32 el cable que iba al ADC.</label></li>
+  <li><label><input type="checkbox"> Une el <strong>GND del Arduino</strong> con el GND del ADC y con un GND de la ESP32 (todo al riel −).</label></li>
+  <li><label><input type="checkbox"> Une el <strong>5V del Arduino</strong> con el pin de 5 V del ADC (cable 7 y 8). No toques ningún pin de la ESP32 con ese cable ni uses el 3.3V del Arduino.</label></li>
+  <li><label><input type="checkbox"> Conecta primero el USB del Arduino y después el de la ESP32 (conector nativo, COM6).</label></li>
+  <li><label><input type="checkbox"> Con el sketch <code>prueba_reloj</code> cargado, lee el contador de flancos (con <code>dtr=True</code> y <code>rts=False</code>): <code>python -c "import serial;s=serial.Serial();s.port='COM6';s.baudrate=115200;s.timeout=1.5;s.dtr=True;s.rts=False;s.open();[print(s.readline().decode(errors='ignore').strip()) for _ in range(12)]"</code></label></li>
+</ol>
+<div class="ok"><strong>Qué esperar si funciona:</strong> LRCK cerca de 9 600 flancos por ventana de 100 ms (48 kHz) o 19 200 (96 kHz); BCLK y DATA distintos de 0 (BCLK se cuenta por sondeo y sale subestimado). Después: cargar <code>rocky_ia</code> por COM6 y correr <code>python Python/diagnostico_hw.py --puerto COM6</code>, que debe dar cerca de 250 paquetes por segundo.</div>
+<div class="warn"><strong>Resultado de esta prueba (anótalo):</strong> <label><input type="checkbox"> hubo flancos en LRCK</label> <label><input type="checkbox"> siguen en 0</label>. Si siguen en 0 con 5 V y masa común, revisa que BCLK, LRCK y DATA estén en GPIO 4, 5 y 6; si todo está bien, el PCM1808 puede estar dañado.</div>
+
+<h2>7. Si algo falla</h2>
+<table>
+  <tr><th>Síntoma</th><th>Qué revisar</th></tr>
+  <tr><td>El HS075 no enciende o se calienta</td><td>Polaridad del adaptador; que el cable de 12 V esté en VCC y no en SOUT; desconecta y mide.</td></tr>
+  <tr><td>El PC no ve la placa</td><td>Cable USB solo de carga; usa el puerto USB nativo (izquierdo con los USB-C abajo; COM6) y no el puente serie (COM5); mantén BOOT, pulsa RESET, suelta BOOT.</td></tr>
+  <tr><td>0 paquetes o silencio total</td><td>PCM1808 sin 5 V (en este clon el pin 5V no entrega 5 V sin el puente IN-OUT: usa el Arduino, sección 6b); falta tierra común entre Arduino, ADC y ESP32; BCLK, LRCK y DATA cruzados o flojos; puentes OP distintos a lo indicado, sobre todo OP3 cerrado (modo esclavo).</td></tr>
+  <tr><td>Zumbido o mucho ruido</td><td>Falta GND común; cables de señal largos; adaptador barato; guitarra cerca del adaptador.</td></tr>
+  <tr><td>Sonido recortado</td><td>Baja NIVEL o el volumen de la guitarra.</td></tr>
+  <tr><td>Datos raros (todo en un valor)</td><td>Formato I2S 24 bits y modo maestro mal configurados en los puentes del PCM1808; MCLK debe estar libre.</td></tr>
+</table>
+
+<h2>8. Fotos para el informe</h2>
+<ul class="check">
+  <li><label><input type="checkbox"> Montaje completo con todos los cables</label></li>
+  <li><label><input type="checkbox"> Los dos módulos de cerca, con serigrafía legible (también la parte de abajo)</label></li>
+  <li><label><input type="checkbox"> Los tres cables I2S (BCLK, LRCK, DATA)</label></li>
+  <li><label><input type="checkbox"> El Arduino alimentando el ADC, con los cables de 5V y GND visibles</label></li>
+  <li><label><input type="checkbox"> El multímetro midiendo 5 V y 12 V, si lo consiguen</label></li>
+  <li><label><input type="checkbox"> La captura de la prueba de reloj (con o sin flancos) y la del diagnóstico</label></li>
+  <li><label><input type="checkbox"> La señal en el osciloscopio, si hay</label></li>
+</ul>
+
+<p class="sub" style="margin-top:30px">Pines I2S y GPIO: <code>Firmware/rocky_ia/config.h</code>. Orden de los conectores: fotos del vendedor (HS075 y PCM1808 GLA). Los demás datos, de tu informe anterior y marcados con ⚠ cuando no se ven.</p>
+</main>
+</body>
+</html>
